@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
+using UnityEngine.UI;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using TMPro;
@@ -13,13 +14,25 @@ public class PlayerHealth : MonoBehaviour, IDamageHandler
     public Rigidbody2D rb;
     public Animator animator;
     public GameObject healthText;
+    public Sprite heartFull;
+    public Sprite heartHalf;
+    public GameObject heartContainer;
 
-    void Start() => this.health = _MaxHealth;
+    private int _numHearts;
+
+    void Start()
+    {
+        this.health = _MaxHealth;
+        DrawHearts();
+    }
     void IDamageHandler.TakeDamage(float dmg, Vector2 kb)
     {
         rb.AddForce(kb);
         this.health -= dmg;
+        ClearHearts();
+        DrawHearts();
 
+        #region Damage numbers
         RectTransform textTransform = Instantiate(healthText).GetComponent<RectTransform>();
         textTransform.transform.position = Camera.main.WorldToScreenPoint(gameObject.transform.position);
 
@@ -29,7 +42,7 @@ public class PlayerHealth : MonoBehaviour, IDamageHandler
         TextMeshProUGUI text = canvas.GetComponentInChildren<TextMeshProUGUI>();
         text.text = "" + dmg;
         text.color = new Color(1, 0, 0, 1);
-
+        #endregion
 
         if (this.health <= 0)
         {
@@ -38,6 +51,34 @@ public class PlayerHealth : MonoBehaviour, IDamageHandler
         }
         print(this.health);
 
+    }
+
+    void DrawHearts()
+    {
+        _numHearts = (int) health / 5;
+
+        for (int i = 0; i < _numHearts; i++)
+        {
+           GameObject newHeart = new GameObject("" + i);
+           newHeart.transform.position = heartContainer.transform.position;
+
+           Image img = newHeart.AddComponent<Image>();
+           img.sprite = heartFull;
+
+           newHeart.transform.SetParent(heartContainer.transform);
+
+           RectTransform rt = newHeart.GetComponent<RectTransform>();
+           rt.sizeDelta = new Vector2(25, 25);
+           rt.position = rt.position + new Vector3((i) - (50 * i), 0, 0);
+        }
+    }
+
+    void ClearHearts() 
+    {
+        foreach (Transform child in heartContainer.transform)
+        {
+            GameObject.Destroy(child.gameObject);
+        }
     }
 
     void IDamageHandler.TakeDamage(float dmg)

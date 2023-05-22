@@ -15,6 +15,8 @@ public class Slime : MonoBehaviour, IDamageHandler
     public Rigidbody2D rb;
     public GameObject healthText;
     public float kbMagnitude;
+    public GameObject tileDropPF;
+    public Sprite drop;
 
     private void Start() =>  rb = GetComponent<Rigidbody2D>();
 
@@ -34,8 +36,6 @@ public class Slime : MonoBehaviour, IDamageHandler
 
     void IDamageHandler.TakeDamage(float damage, Vector2 knockback)
     {
-        this.health -= damage;
-
         RectTransform textTransform = Instantiate(healthText).GetComponent<RectTransform>();
         textTransform.transform.position = Camera.main.WorldToScreenPoint(gameObject.transform.position);
 
@@ -43,18 +43,31 @@ public class Slime : MonoBehaviour, IDamageHandler
         textTransform.SetParent(canvas.transform);
         
         TextMeshProUGUI text = canvas.GetComponentInChildren<TextMeshProUGUI>();
-        text.text = "" + damage;
-        text.color = new Color(1, 0, 0, 1);
+        float rand = Random.Range(0f, 1f);
+
+        if (rand > 0.7)
+        {
+            damage++;
+            text.text = damage + " CRITICAL HIT!";
+            text.color = new Color(1, 0.451f, 0.075f, 1);
+        }
+        else
+        {
+            text.text = "" + damage;
+            text.color = new Color(1, 0, 0, 1);
+        }
+        
+        this.health -= damage;
 
         if (this.health <= 0)
         {
             Killed();
+            CoinDrop();
         }
 
         rb.AddForce(knockback);
 
         animator.SetBool("gettingHit", true);
-        print(knockback);
     }
 
     void IDamageHandler.TakeDamage(float dmg) 
@@ -62,17 +75,27 @@ public class Slime : MonoBehaviour, IDamageHandler
         throw new System.NotImplementedException();
     }
 
-    private void Killed() 
+    private void Killed() => animator.SetTrigger("dead");
+
+    private void CoinDrop()
     {
-        animator.SetTrigger("dead");
+        GameObject td = Instantiate(tileDropPF, transform.localPosition, Quaternion.identity);
+        td.name = "coin";
+        td.GetComponent<SpriteRenderer>().sprite = drop;
+        td.AddComponent<TileDropController>();
+        StartCoroutine(StopDrop(td, 0.2f));
+    }
+
+    private IEnumerator StopDrop(GameObject drop, float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        if (drop != null)
+            drop.GetComponent<Rigidbody2D>().bodyType = RigidbodyType2D.Static;
     }
 
     public void StopDmgAnim() => animator.SetBool("gettingHit", false);
 
-    public void DestroyMob() 
-    {
-        Destroy(gameObject);
-    }
+    public void DestroyMob() => Destroy(gameObject);
 
     private void OnCollisionEnter2D(Collision2D other) 
     {

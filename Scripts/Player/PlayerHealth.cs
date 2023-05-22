@@ -9,8 +9,8 @@ using TMPro;
 
 public class PlayerHealth : MonoBehaviour, IDamageHandler
 {
-    public const float _MaxHealth = 20f;
-    public float health = _MaxHealth;
+    public  float maxHealth = 20f;
+    public float health;
     public Rigidbody2D rb;
     public Animator animator;
     public GameObject healthText;
@@ -22,7 +22,7 @@ public class PlayerHealth : MonoBehaviour, IDamageHandler
 
     void Start()
     {
-        this.health = _MaxHealth;
+        this.health = maxHealth;
         DrawHearts();
     }
     void IDamageHandler.TakeDamage(float dmg, Vector2 kb)
@@ -68,8 +68,8 @@ public class PlayerHealth : MonoBehaviour, IDamageHandler
            newHeart.transform.SetParent(heartContainer.transform);
 
            RectTransform rt = newHeart.GetComponent<RectTransform>();
-           rt.sizeDelta = new Vector2(25, 25);
-           rt.position = rt.position + new Vector3((i) - (50 * i), 0, 0);
+           rt.sizeDelta = new Vector2(40, 40);
+           rt.position = rt.position + new Vector3((55 * i), 0, 0);
         }
     }
 

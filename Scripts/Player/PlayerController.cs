@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using TMPro;
 
 public class PlayerController : MonoBehaviour
 {
@@ -9,12 +10,14 @@ public class PlayerController : MonoBehaviour
     public float collisionOffset;
     public SwordAttack swordAttack;
     public ContactFilter2D movementFilter;
+    public TextMeshProUGUI coinText;
 
     private List<RaycastHit2D> _castCollisions = new List<RaycastHit2D>();
     private Vector2 _movementInput;
     private Rigidbody2D _rb;
     private Animator _animator;
     private SpriteRenderer _spriteRenderer;
+    private int _coins;
     
     private void Start()
     {
@@ -48,6 +51,14 @@ public class PlayerController : MonoBehaviour
             swordAttack.AttackLeft();
         else
             swordAttack.AttackRight();
+
+        print("attack");
+    }
+
+    public void UpdateCoinCount()
+    {
+        _coins++;
+        coinText.text = "" + _coins;
     }
 
     public void StopSwordAttack() => swordAttack.StopAttack();

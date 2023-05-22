@@ -25,6 +25,7 @@ public class SwordAttack : MonoBehaviour
     {
         boxCollider.enabled = true;
         transform.localPosition = new Vector2(-_rightOffset.x, _rightOffset.y);
+        print(transform.localPosition);
     }
 
     public void StopAttack()
@@ -34,7 +35,7 @@ public class SwordAttack : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other) 
     {
-        if (other.tag == "Mob")
+        if (other.tag == "Mob" || other.tag == "Player")
         {
             
             IDamageHandler mob = other.GetComponent<IDamageHandler>();

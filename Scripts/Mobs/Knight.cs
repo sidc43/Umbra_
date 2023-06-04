@@ -8,6 +8,7 @@ public class Knight : MonoBehaviour, IDamageHandler
     public Animator animator;
     public float health;
     public float moveSpeed;
+    public int expReward;
     public DetectionZone detectionZone;
     public SpriteRenderer sprite;
     public Rigidbody2D rb;
@@ -15,6 +16,10 @@ public class Knight : MonoBehaviour, IDamageHandler
     public GameObject tileDropPF;
     public Sprite drop;
     public SwordAttack swordAttack;
+    public AudioManager audioManager;
+    public PlayerController playerController;
+
+    private void Start()  {audioManager = FindObjectOfType<AudioManager>(); playerController = FindObjectOfType<PlayerController>();}
 
     private void FixedUpdate()
     {
@@ -26,7 +31,7 @@ public class Knight : MonoBehaviour, IDamageHandler
 
             sprite.flipX = col.transform.position.x < transform.position.x;
             animator.SetBool("isMoving", true);
-            animator.SetBool("swordAttack", Vector2.Distance(transform.position, col.gameObject.transform.position) < .3f);
+            animator.SetBool("swordAttack", Vector2.Distance(transform.position, col.gameObject.transform.position) < 1.6f);
         }
         else
             animator.SetBool("isMoving", false);
@@ -34,10 +39,10 @@ public class Knight : MonoBehaviour, IDamageHandler
 
     public void SwordAttack()
     {
+        audioManager.Play("PlayerAttack");
         if (sprite.flipX)
         {
             swordAttack.AttackLeft();
-            print("attacked left");
         }
         else
             swordAttack.AttackRight();
@@ -47,6 +52,9 @@ public class Knight : MonoBehaviour, IDamageHandler
 
     void IDamageHandler.TakeDamage(float dmg, Vector2 kb)
     {
+        if (!audioManager.GetSound("KnightDamage").source.isPlaying)
+            audioManager.Play("KnightDamage");
+
         rb.AddForce(kb);
         this.health -= dmg;
 
@@ -65,25 +73,31 @@ public class Knight : MonoBehaviour, IDamageHandler
         if (this.health <= 0)
         {
             animator.SetTrigger("dead");
+            CoinDrop(3);
             rb.simulated = false;
+            playerController.exp += expReward;
+            playerController.CheckLevelUp();
         }
-        print(this.health);
     }
 
     private void CoinDrop()
     {
-        GameObject td = Instantiate(tileDropPF, transform.localPosition, Quaternion.identity);
+        GameObject td = Instantiate(tileDropPF, transform.position, Quaternion.identity);
         td.name = "coin";
         td.GetComponent<SpriteRenderer>().sprite = drop;
         td.AddComponent<TileDropController>();
-        StartCoroutine(StopDrop(td, 0.2f));
     }
 
-    private IEnumerator StopDrop(GameObject drop, float delay)
+    private void CoinDrop(int amount)
     {
-        yield return new WaitForSeconds(delay);
-        if (drop != null)
-            drop.GetComponent<Rigidbody2D>().bodyType = RigidbodyType2D.Static;
+        for (int i = 0; i < amount; i++)
+        {
+            GameObject td = Instantiate(tileDropPF, new Vector3(transform.position.x - (i / 2), transform.position.y), Quaternion.identity);
+            td.name = "coin" + i;
+            td.GetComponent<SpriteRenderer>().sprite = drop;
+            td.AddComponent<TileDropController>();
+        }
+        
     }
 
     public void DestroyMob() => Destroy(gameObject);

@@ -16,7 +16,9 @@ public class PlayerHealth : MonoBehaviour, IDamageHandler
     public GameObject healthText;
     public Sprite heartFull;
     public Sprite heartHalf;
+    public Sprite heartEmpty;
     public GameObject heartContainer;
+    public AudioManager audioManager;
 
     private int _numHearts;
 
@@ -27,6 +29,7 @@ public class PlayerHealth : MonoBehaviour, IDamageHandler
     }
     void IDamageHandler.TakeDamage(float dmg, Vector2 kb)
     {
+        audioManager.Play("PlayerDamage");
         rb.AddForce(kb);
         this.health -= dmg;
         ClearHearts();
@@ -48,14 +51,28 @@ public class PlayerHealth : MonoBehaviour, IDamageHandler
         {
             rb.simulated = false;
             animator.SetTrigger("dead");
+            audioManager.Play("PlayerDeath");
         }
-        print(this.health);
-
     }
 
-    void DrawHearts()
+    public void DrawHearts()
     {
         _numHearts = (int) health / 5;
+
+        for (int i = 0; i < (int) (maxHealth / 5); i++)
+        {
+           GameObject newHeart = new GameObject("" + i);
+           newHeart.transform.position = heartContainer.transform.position;
+
+           Image img = newHeart.AddComponent<Image>();
+           img.sprite = heartEmpty;
+
+           newHeart.transform.SetParent(heartContainer.transform);
+
+           RectTransform rt = newHeart.GetComponent<RectTransform>();
+           rt.sizeDelta = new Vector2(40, 40);
+           rt.position = rt.position + new Vector3((55 * i), 0, 0);
+        }
 
         for (int i = 0; i < _numHearts; i++)
         {

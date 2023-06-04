@@ -10,7 +10,6 @@ public class TileDropController : MonoBehaviour
 
         if (player != null)
         {
-            print("picked up");
             player.UpdateCoinCount();
             Destroy(gameObject);
         }

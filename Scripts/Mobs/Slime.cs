@@ -8,6 +8,7 @@ public class Slime : MonoBehaviour, IDamageHandler
 {
     public Animator animator;
     public float health;
+    public int expReward;
     public float damage;
     public float moveSpeed;
     public DetectionZone detectionZone;
@@ -17,8 +18,15 @@ public class Slime : MonoBehaviour, IDamageHandler
     public float kbMagnitude;
     public GameObject tileDropPF;
     public Sprite drop;
+    public AudioManager audioManager;
+    public PlayerController playerController;
 
-    private void Start() =>  rb = GetComponent<Rigidbody2D>();
+    private void Start() 
+    {
+        audioManager = FindObjectOfType<AudioManager>();
+        rb = GetComponent<Rigidbody2D>();
+        playerController = FindObjectOfType<PlayerController>();
+    } 
 
     private void FixedUpdate()
     {
@@ -36,6 +44,7 @@ public class Slime : MonoBehaviour, IDamageHandler
 
     void IDamageHandler.TakeDamage(float damage, Vector2 knockback)
     {
+        audioManager.Play("SlimeDamage");
         RectTransform textTransform = Instantiate(healthText).GetComponent<RectTransform>();
         textTransform.transform.position = Camera.main.WorldToScreenPoint(gameObject.transform.position);
 
@@ -63,6 +72,8 @@ public class Slime : MonoBehaviour, IDamageHandler
         {
             Killed();
             CoinDrop();
+            playerController.exp += expReward;
+            playerController.CheckLevelUp();
         }
 
         rb.AddForce(knockback);
@@ -79,18 +90,10 @@ public class Slime : MonoBehaviour, IDamageHandler
 
     private void CoinDrop()
     {
-        GameObject td = Instantiate(tileDropPF, transform.localPosition, Quaternion.identity);
+        GameObject td = Instantiate(tileDropPF, transform.position, Quaternion.identity);
         td.name = "coin";
         td.GetComponent<SpriteRenderer>().sprite = drop;
         td.AddComponent<TileDropController>();
-        StartCoroutine(StopDrop(td, 0.2f));
-    }
-
-    private IEnumerator StopDrop(GameObject drop, float delay)
-    {
-        yield return new WaitForSeconds(delay);
-        if (drop != null)
-            drop.GetComponent<Rigidbody2D>().bodyType = RigidbodyType2D.Static;
     }
 
     public void StopDmgAnim() => animator.SetBool("gettingHit", false);

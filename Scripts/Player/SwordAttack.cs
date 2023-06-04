@@ -4,14 +4,17 @@ using UnityEngine;
 
 public class SwordAttack : MonoBehaviour
 {
-    public float damage = 2;
+    public Weapon weaponParent;
+    public float damage;
     public BoxCollider2D boxCollider;
-    public float kbMagnitude = 300f;
+    public float kbMagnitude;
 
     private Vector2 _rightOffset;
 
     private void Start() 
     {
+        damage = weaponParent.damage;
+        kbMagnitude = weaponParent.knockBack;
         _rightOffset = transform.localPosition;
     }
 
@@ -25,7 +28,6 @@ public class SwordAttack : MonoBehaviour
     {
         boxCollider.enabled = true;
         transform.localPosition = new Vector2(-_rightOffset.x, _rightOffset.y);
-        print(transform.localPosition);
     }
 
     public void StopAttack()

@@ -5,13 +5,21 @@ using UnityEngine.InputSystem;
 
 public class Crosshair : MonoBehaviour
 {
-    
+    [SerializeField] private float smoothing = 9f; // Adjust the smoothing factor as needed
+
     private Vector2 _mousePos;
     private Vector2 _mouseWorldPos;
+    private Vector2 _targetPos;
+
+    private void Start()
+    {
+        _targetPos = transform.position;
+    }
+
     private void FixedUpdate()
     {
         GetMousePos();
-        this.transform.position = _mouseWorldPos;
+        UpdateCrosshairPosition();
     }
 
     public void GetMousePos()
@@ -19,5 +27,11 @@ public class Crosshair : MonoBehaviour
         float distance = Camera.main.nearClipPlane;
         _mousePos = Mouse.current.position.ReadValue();
         _mouseWorldPos = Camera.main.ScreenToWorldPoint(_mousePos);
+    }
+
+    private void UpdateCrosshairPosition()
+    {
+        _targetPos = Vector2.Lerp(_targetPos, _mouseWorldPos, smoothing * Time.fixedDeltaTime);
+        transform.position = _targetPos;
     }
 }

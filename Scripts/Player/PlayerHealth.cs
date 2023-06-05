@@ -70,8 +70,8 @@ public class PlayerHealth : MonoBehaviour, IDamageHandler
            newHeart.transform.SetParent(heartContainer.transform);
 
            RectTransform rt = newHeart.GetComponent<RectTransform>();
-           rt.sizeDelta = new Vector2(40, 40);
-           rt.position = rt.position + new Vector3((55 * i), 0, 0);
+           rt.sizeDelta = new Vector2(35, 35);
+           rt.position = rt.position + new Vector3((45 * i), 0, 0);
         }
 
         for (int i = 0; i < _numHearts; i++)
@@ -85,8 +85,8 @@ public class PlayerHealth : MonoBehaviour, IDamageHandler
            newHeart.transform.SetParent(heartContainer.transform);
 
            RectTransform rt = newHeart.GetComponent<RectTransform>();
-           rt.sizeDelta = new Vector2(40, 40);
-           rt.position = rt.position + new Vector3((55 * i), 0, 0);
+           rt.sizeDelta = new Vector2(35, 35);
+           rt.position = rt.position + new Vector3((45 * i), 0, 0);
         }
     }
 

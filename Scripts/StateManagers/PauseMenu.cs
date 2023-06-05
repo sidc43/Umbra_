@@ -52,6 +52,7 @@ public class PauseMenu : MonoBehaviour
         {
             writer.WriteLine(sfxSlider.value);
             writer.Close();
+            writer.Dispose();
         }
     }
     public void PlayButtonPressSound() => audioManager.Play("ButtonPress");

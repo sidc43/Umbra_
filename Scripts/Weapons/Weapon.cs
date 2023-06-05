@@ -6,9 +6,11 @@ using UnityEngine;
 public class Weapon : ScriptableObject
 {
     public Sprite sprite;
+    public GameObject instance; //! Ranged weapons only
     public float damage;
     public float knockBack;
-    public float range;
+    public float range; //! Ranged weapons only (Range = time to live in sec)
+    public float speed; //! Ranged weapons only
     public Type type;
 
     public enum Type

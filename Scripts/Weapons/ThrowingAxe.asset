@@ -13,7 +13,9 @@ MonoBehaviour:
   m_Name: ThrowingAxe
   m_EditorClassIdentifier: 
   sprite: {fileID: -61340201, guid: d292f749884ae0848bb9881b26a0ead1, type: 3}
-  damage: 5
-  knockBack: 200
-  range: 4
+  instance: {fileID: 4619604681134389593, guid: 3fe8c02714abd0942ae49bd964ac2d4f, type: 3}
+  damage: 2
+  knockBack: 100
+  range: 2
+  speed: 9
   type: 1

@@ -32,6 +32,7 @@ public class StartMenu : MonoBehaviour
                     }
                 }
                 reader.Close();
+                reader.Dispose();
             }
         }
     }
@@ -53,6 +54,7 @@ public class StartMenu : MonoBehaviour
         {
             writer.WriteLine(sfxSlider.value);
             writer.Close();
+            writer.Dispose();
         }
     }
 

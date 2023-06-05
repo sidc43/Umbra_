@@ -46,6 +46,8 @@ public class AudioManager : MonoBehaviour
                 {
                     Console.WriteLine("Invalid float value in the file.");
                 }
+                reader.Close();
+                reader.Dispose();
             }
         }
         else

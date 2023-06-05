@@ -48,6 +48,7 @@ public class PlayerController : MonoBehaviour
     
     private void Start()
     {
+        Application.targetFrameRate = 300;
         exp = 0;
         level = 0;
         expForNextLvl = 10;
@@ -60,10 +61,10 @@ public class PlayerController : MonoBehaviour
         _spriteRenderer = GetComponent<SpriteRenderer>();  
 
         audioManager.Play("Theme"); 
+        UpdateCoinCountInc(10);
 
         weapons.Add(startingWeapon);
         UpdateCurrentWeapon(startingWeapon);
-        UpdateCoinCountInc(50);
 
         Cursor.visible = false;
         room.GenerateDungeon();
@@ -108,6 +109,7 @@ public class PlayerController : MonoBehaviour
         currentWeapon = weapon;
         currWeaponImage.sprite = weapon.sprite;
     }
+    public void UpdateCurrentWeaponImage() => currWeaponImage.sprite = currentWeapon.sprite;
     private void CloseWeaponMenu()
     {
         weaponMenuOn = false;
@@ -168,8 +170,46 @@ public class PlayerController : MonoBehaviour
     void OnMove(InputValue movementValue) => _movementInput = movementValue.Get<Vector2>();
     private void OnFire() 
     {
-        if (currentWeapon.type == Weapon.Type.Melee)
-            _animator.SetTrigger("swordAttack");
+        switch (currentWeapon.type)
+        {
+            case Weapon.Type.Melee:
+                _animator.SetTrigger("swordAttack");
+                break;
+            case Weapon.Type.Ranged:
+                Vector2 mouseCursorePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+                Vector2 lookDir = mouseCursorePos - _rb.position;
+                lookDir.Normalize();
+
+                GameObject throwingAxe = null;
+                if (mouseCursorePos.x < transform.position.x && mouseCursorePos.y < transform.position.y)
+                {
+                    throwingAxe = Instantiate(currentWeapon.instance, new Vector2(transform.position.x - 1, transform.position.y), Quaternion.identity);
+                }
+                else if (mouseCursorePos.x > transform.position.x && mouseCursorePos.y < transform.position.y)
+                {
+                    throwingAxe = Instantiate(currentWeapon.instance, new Vector2(transform.position.x + 1, transform.position.y), Quaternion.identity);
+                }
+                else if (mouseCursorePos.y < transform.position.y)
+                {
+                    throwingAxe = Instantiate(currentWeapon.instance, new Vector2(transform.position.x, transform.position.y - 1), Quaternion.identity);
+                }
+                else if (mouseCursorePos.y > transform.position.y)
+                {
+                    throwingAxe = Instantiate(currentWeapon.instance, new Vector2(transform.position.x, transform.position.y + 0.4f), Quaternion.identity);
+                }
+                else
+                    throwingAxe = Instantiate(currentWeapon.instance, transform.position, Quaternion.identity);
+
+                throwingAxe.GetComponent<SpriteRenderer>().flipY = (mouseCursorePos.x < transform.position.x);
+                throwingAxe.GetComponent<Rigidbody2D>().velocity = lookDir * currentWeapon.speed;
+                throwingAxe.transform.Rotate(0f, 0f, Mathf.Atan2(lookDir.y, lookDir.x) * Mathf.Rad2Deg);
+
+                audioManager.Play("ThrowingAxe");
+
+                Destroy(throwingAxe, currentWeapon.range);
+                break;
+        }
+        
     } 
     public int Coins() => _coins;
 }

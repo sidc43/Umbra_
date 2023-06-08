@@ -18,8 +18,36 @@ public class Knight : MonoBehaviour, IDamageHandler
     public SwordAttack swordAttack;
     public AudioManager audioManager;
     public PlayerController playerController;
+    public float invincibilityTime = 0.25f;
+    public bool canTurnInvincible = false;
+    public bool _invincible = false;
+    public RoomFirstDungeonGenerator waveManager;
 
-    private void Start()  {audioManager = FindObjectOfType<AudioManager>(); playerController = FindObjectOfType<PlayerController>();}
+
+    private float invincibleTimeElapsed = 0f;
+    private Color originalColor;
+    private int numCoinsDropped;
+
+    public bool Invincible { get {
+        return _invincible;
+    }
+    set {
+        _invincible = value;
+
+        if (_invincible == true)
+        {
+            invincibleTimeElapsed = 0f;
+        }
+    } }
+
+    private void Start()  
+    {
+        numCoinsDropped = 3;
+        audioManager = FindObjectOfType<AudioManager>(); 
+        playerController = FindObjectOfType<PlayerController>(); 
+        originalColor = GetComponent<SpriteRenderer>().color;
+        waveManager = FindObjectOfType<RoomFirstDungeonGenerator>();
+    }
 
     private void FixedUpdate()
     {
@@ -35,6 +63,39 @@ public class Knight : MonoBehaviour, IDamageHandler
         }
         else
             animator.SetBool("isMoving", false);
+
+        if (Invincible)
+        {
+            invincibleTimeElapsed += Time.deltaTime;
+            if (invincibleTimeElapsed > invincibilityTime)
+                Invincible = false;
+
+            StartCoroutine(FlashColor(0.2f));
+        }
+
+        if (waveManager.wave > 1 && waveManager.wave < 3)
+        {
+            numCoinsDropped = 5;
+            moveSpeed = 1.3f;
+        }
+        else if (waveManager.wave >= 3 && waveManager.wave < 7)
+        {
+            numCoinsDropped = 7;
+            moveSpeed = 1.4f;
+        }
+        else if (waveManager.wave >= 7 && waveManager.wave <= 10)
+        {
+            numCoinsDropped = 9;
+            moveSpeed = 1.6f;
+            swordAttack.damage = 10f;
+        }
+    }
+
+    private IEnumerator FlashColor(float interval)
+    {
+        GetComponent<SpriteRenderer>().color = Color.red;
+        yield return new WaitForSeconds(interval);
+        GetComponent<SpriteRenderer>().color = originalColor;
     }
 
     public void SwordAttack()
@@ -52,32 +113,42 @@ public class Knight : MonoBehaviour, IDamageHandler
 
     void IDamageHandler.TakeDamage(float dmg, Vector2 kb)
     {
-        if (!audioManager.GetSound("KnightDamage").source.isPlaying)
+        if (!Invincible)
+        {
+            if (!audioManager.GetSound("KnightDamage").source.isPlaying)
             audioManager.Play("KnightDamage");
 
-        rb.AddForce(kb);
-        this.health -= dmg;
+            rb.AddForce(kb);
+            this.health -= dmg;
 
-        #region Damage numbers
-        RectTransform textTransform = Instantiate(healthText).GetComponent<RectTransform>();
-        textTransform.transform.position = Camera.main.WorldToScreenPoint(gameObject.transform.position);
+            if (canTurnInvincible)
+            {
+                // activate timer
+                Invincible = true;
+            }
 
-        Canvas canvas = GameObject.FindGameObjectWithTag("Canvas").GetComponent<Canvas>();
-        textTransform.SetParent(canvas.transform);
-        
-        TextMeshProUGUI text = canvas.GetComponentInChildren<TextMeshProUGUI>();
-        text.text = "" + dmg;
-        text.color = new Color(1, 0, 0, 1);
-        #endregion
+            #region Damage numbers
+            RectTransform textTransform = Instantiate(healthText).GetComponent<RectTransform>();
+            textTransform.transform.position = Camera.main.WorldToScreenPoint(gameObject.transform.position);
 
-        if (this.health <= 0)
-        {
-            animator.SetTrigger("dead");
-            CoinDrop(3);
-            rb.simulated = false;
-            playerController.exp += expReward;
-            playerController.CheckLevelUp();
+            Canvas canvas = GameObject.FindGameObjectWithTag("Canvas").GetComponent<Canvas>();
+            textTransform.SetParent(canvas.transform);
+            
+            TextMeshProUGUI text = canvas.GetComponentInChildren<TextMeshProUGUI>();
+            text.text = "" + dmg;
+            text.color = new Color(1, 0, 0, 1);
+            #endregion
+
+            if (this.health <= 0)
+            {
+                animator.SetTrigger("dead");
+                CoinDrop(numCoinsDropped);
+                rb.simulated = false;
+                playerController.exp += expReward;
+                playerController.CheckLevelUp();
+            }
         }
+        
     }
 
     private void CoinDrop()

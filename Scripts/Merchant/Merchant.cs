@@ -11,10 +11,17 @@ public class Merchant : MonoBehaviour
     public GameObject promptContainer;
     public Canvas shop;
     public Weapon throwingAxe;
-    [SerializeField] private int healthPrice;
-    [SerializeField] private int axePrice;
+    public Weapon fireball;
     public TextMeshProUGUI healthPricetext;
+    public TextMeshProUGUI manaPricetext;
     public TextMeshProUGUI axePriceText;
+    public TextMeshProUGUI fireballPriceText;
+    [SerializeField] private int healthPrice;
+    [SerializeField] private int manaPrice;
+    [SerializeField] private int axePrice;
+    [SerializeField] private int fireballPrice;
+    [SerializeField] private TextMeshProUGUI errorText;
+    
 
     PlayerController player;
     PlayerHealth playerHealth;
@@ -24,7 +31,9 @@ public class Merchant : MonoBehaviour
     private void Start() 
     {
         healthPricetext.text = "" + healthPrice;
+        manaPricetext.text = "" + manaPrice;
         axePriceText.text = "" + axePrice;
+        fireballPriceText.text = "" + fireballPrice;
     }
     
     private void Update()
@@ -36,14 +45,12 @@ public class Merchant : MonoBehaviour
             if (shop.gameObject.activeSelf)
             {
                 ResumeGame();
-                Cursor.visible = false;
-                shop.gameObject.SetActive(false);
+                player.canAttack = true;
             }
             else    
             {
+                player.canAttack = false;
                 PauseGame();
-                Cursor.visible = true;
-                shop.gameObject.SetActive(true);
             }
         }
     }
@@ -58,31 +65,52 @@ public class Merchant : MonoBehaviour
             inRange = true;
         }
     }
-
     private void OnTriggerExit2D(Collider2D other) 
     {
         promptContainer.SetActive(false);
         if (other.tag == "Player")
             inRange = false;    
     }
-
-    private void PauseGame() => Time.timeScale = 0;
-    private void ResumeGame() => Time.timeScale = 1;
-
+    private void PauseGame() 
+    {
+        Cursor.visible = true;
+        shop.gameObject.SetActive(true);
+        player.GetComponent<PlayerInput>().DeactivateInput();
+    }
+    private void ResumeGame() 
+    {
+        Cursor.visible = false;
+        shop.gameObject.SetActive(false);
+        player.GetComponent<PlayerInput>().ActivateInput();
+    }
     public void BuyHealth()
     {
         if (player.Coins() >= healthPrice)
         {
             playerHealth.health = playerHealth.maxHealth;
-            playerHealth.DrawHearts();
+            playerHealth.RedrawHearts();
             player.UpdateCoinCountDec(healthPrice);
         }
+        else
+            StartCoroutine(ShowErrorText(1));
     }
-
-    public void BuyThrowingAxe()
+    public void BuyMana()
+    {
+        if (player.Coins() >= manaPrice)
+        {
+            playerHealth.mana = playerHealth.maxMana;
+            playerHealth.RedrawMana();
+            player.UpdateCoinCountDec(manaPrice);
+        }
+        else
+            StartCoroutine(ShowErrorText(1));
+    }
+    public void BuyThrowingAxe() => BuyWeapon(throwingAxe, axePrice, 25, 60, 0, 9);
+    public void BuyFireball() => BuyWeapon(fireball, fireballPrice, 80, 45, -5, 4);
+    private void BuyWeapon(Weapon weapon, int weaponPrice, int rectX, int rectY, int posX, int posY)
     {
         List<Transform> slots = new List<Transform>();
-        if (player.Coins() >= axePrice && !player.weapons.Contains(throwingAxe))
+        if (player.Coins() >= weaponPrice && !player.weapons.Contains(weapon))
         {
             for (int i = 0; i < player.weaponsMenu.transform.childCount; i++)
             {
@@ -92,13 +120,22 @@ public class Merchant : MonoBehaviour
                     slots.Add(slot);
                 }
             }
-            player.weapons.Add(throwingAxe);
-            slots[0].GetChild(0).GetComponent<Image>().sprite = throwingAxe.sprite;
-            slots[0].GetChild(0).GetComponent<WeaponInSlot>().weapon = throwingAxe;
-            slots[0].GetChild(0).GetComponent<Image>().rectTransform.sizeDelta = new Vector2(25, 60);   
-            slots[0].GetChild(0).GetComponent<Image>().rectTransform.anchoredPosition = new Vector2(0, 9);
-            player.UpdateCoinCountDec(axePrice);
-            player.UpdateCurrentWeapon(throwingAxe);
+            player.weapons.Add(weapon);
+            slots[0].GetChild(0).GetComponent<Image>().sprite = weapon.sprite;
+            slots[0].GetChild(0).GetComponent<WeaponInSlot>().weapon = weapon;
+            slots[0].GetChild(0).GetComponent<Image>().rectTransform.sizeDelta = new Vector2(rectX, rectY);   
+            slots[0].GetChild(0).GetComponent<Image>().rectTransform.anchoredPosition = new Vector2(posX, posY);
+            player.UpdateCoinCountDec(weaponPrice);
+            player.UpdateCurrentWeapon(weapon);
         }
+        else
+            StartCoroutine(ShowErrorText(1));
+    }
+    private IEnumerator ShowErrorText(float delay)
+    {
+        errorText.gameObject.SetActive(true);
+        errorText.text = "You don't have enough Coins!";
+        yield return new WaitForSeconds(delay);
+        errorText.gameObject.SetActive(false);
     }
 }

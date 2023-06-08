@@ -1,9 +1,11 @@
 using System.Threading;
 using System;
+using System.Diagnostics;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using TMPro;
 using Random = UnityEngine.Random;
@@ -15,45 +17,86 @@ public class RoomFirstDungeonGenerator : SimpleRandWalkMapGen
     public GameObject sturctureParent;
     public Slime slime;
     public Knight knight;
+    public Porcupine porcupine;
     public GameObject merchantStore;
     public GameObject[] torches;
 
     [Header("UI")]
     public Slider waveSlider;
     public TextMeshProUGUI waveStartingText;
+    public TextMeshProUGUI timerText;
 
     [Header("Debugging/Info")]
     [SerializeField] private bool spawnKnight;
     [SerializeField] private bool spawnSlime;
+    [SerializeField] private bool spawnPorcupine;
     [SerializeField] private float slimeSpawnRate;
     [SerializeField] private float knightSpawnRate;
+    [SerializeField] private float porcupineSpawnRate;
     public List<Vector2Int> potentialTorchPos = new List<Vector2Int>();
     [SerializeField] private int minRoomWidth = 4, minRoomHeight = 4, dungeonWidth = 20, dungeonHeight = 20, offset = 1;
     [SerializeField] private bool randomWalkRooms = false;
 
     private HashSet<Vector2Int> potentialMobPos = new HashSet<Vector2Int>();
     public List<Vector2> centers = new List<Vector2>();
+    public int wave = 0;
+    private int waveInterval = 6;
+    private bool waveFinished = true;
+    private Stopwatch stopwatch;
+
+    void Start()
+    {
+        stopwatch = new Stopwatch();
+        stopwatch.Start();
+    }
 
     private void Update()
     {
-        if (mobParent.transform.childCount < 3 && spawnKnight && spawnSlime)
+        if (mobParent.transform.childCount < 1 && spawnKnight && spawnSlime)
         {
-            StartCoroutine(SpawnNextWave(2f));
+            if (waveFinished)
+            {
+                wave++;
+                waveFinished = false;
+                if (waveInterval >= 2)
+                    StartCoroutine(SpawnNextWave(waveInterval));
+                else
+                    StartCoroutine(SpawnNextWave(1));
+            }
         }
         waveSlider.value = mobParent.transform.childCount;
+        TimeSpan ts = stopwatch.Elapsed;
+        string elapsed = String.Format("{0:00}:{1:00}", ts.Minutes, ts.Seconds);
+        timerText.text = $"Time: {elapsed}";
+
+        if (wave == 11)
+        {
+            SceneManager.LoadScene("Finished");
+        }
     }
-    private IEnumerator SpawnNextWave(float delay)
+
+    private IEnumerator SpawnNextWave(int delay)
     {
+        waveInterval -= 2;
         StartCoroutine(NextWaveText(delay));
         yield return new WaitForSeconds(delay);
+
         DeleteAllObjectsInParent(mobParent);
         PlaceMobs(potentialMobPos);
         waveSlider.maxValue = mobParent.transform.childCount;
         StopAllCoroutines();
+
+        waveFinished = true;
         yield return null;
     }
-    private IEnumerator NextWaveText(float delay)
+
+    private IEnumerator NextWaveText(int delay)
     {
+        if (wave >= 1 && wave < 7)
+            waveStartingText.text = $"Wave {wave} starting in {delay} seconds\nEnemies are getting faster...";
+        else if (wave >= 7 && wave <= 10)
+            waveStartingText.text = $"Wave {wave} starting in {delay} seconds\nEnemies are getting stronger...";
+
         waveStartingText.gameObject.SetActive(true);
         yield return new WaitForSeconds(delay);
         waveStartingText.gameObject.SetActive(false);
@@ -150,6 +193,11 @@ public class RoomFirstDungeonGenerator : SimpleRandWalkMapGen
             {
                 GameObject knightGo = Instantiate(knight, new Vector3(pos.x, pos.y, 0), Quaternion.identity).gameObject;
                 knightGo.transform.parent = mobParent.transform;
+            }
+            else if (r.NextDouble() < porcupineSpawnRate && spawnPorcupine)
+            {
+                GameObject porcupineGo = Instantiate(porcupine, new Vector3(pos.x, pos.y, 0), Quaternion.identity).gameObject;
+                porcupineGo.transform.parent = mobParent.transform;
             }
         }
     }

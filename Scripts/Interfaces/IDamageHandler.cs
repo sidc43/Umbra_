@@ -6,4 +6,5 @@ public interface IDamageHandler
 {
     void TakeDamage(float dmg, Vector2 kb);
     void TakeDamage(float dmg);
+    bool Invincible { get; set; }
 }

@@ -5,6 +5,7 @@ using UnityEngine.UI;
 using UnityEngine.Audio;
 using UnityEngine.InputSystem;
 using TMPro;
+using UnityEngine.Rendering.Universal;
 
 public class PlayerController : MonoBehaviour
 {
@@ -14,9 +15,11 @@ public class PlayerController : MonoBehaviour
     public float collisionOffset;
     public SwordAttack swordAttack;
     public ContactFilter2D movementFilter;
+    public PlayerHealth playerHealth;
     public int level;
     public int exp;
     public int expForNextLvl;
+    public bool canAttack;
 
     [Header("Weapons")]
     public GameObject weaponsMenu;
@@ -33,8 +36,8 @@ public class PlayerController : MonoBehaviour
     [Header("Sounds")]
     public AudioManager audioManager;
     #endregion
-
     #region Private
+    [SerializeField] TextMeshProUGUI errorText;
     private List<RaycastHit2D> _castCollisions = new List<RaycastHit2D>();
     private Vector2 _movementInput;
     private Rigidbody2D _rb;
@@ -42,10 +45,12 @@ public class PlayerController : MonoBehaviour
     private SpriteRenderer _spriteRenderer;
     private int _coins;
     private bool weaponMenuOn;
+    private float rangedCooldown;
+    private float lastRangeTime;
+
     [Header("Room")]
     [SerializeField] private RoomFirstDungeonGenerator room;
     #endregion
-    
     private void Start()
     {
         Application.targetFrameRate = 300;
@@ -55,13 +60,14 @@ public class PlayerController : MonoBehaviour
         levelSlider.maxValue = expForNextLvl;
         levelSlider.value = exp;
         levelText.text = "" + level;
+        canAttack = true;
 
         _rb = GetComponent<Rigidbody2D>();
         _animator = GetComponent<Animator>();
         _spriteRenderer = GetComponent<SpriteRenderer>();  
 
         audioManager.Play("Theme"); 
-        UpdateCoinCountInc(10);
+        UpdateCoinCountInc(100);
 
         weapons.Add(startingWeapon);
         UpdateCurrentWeapon(startingWeapon);
@@ -108,6 +114,16 @@ public class PlayerController : MonoBehaviour
     {
         currentWeapon = weapon;
         currWeaponImage.sprite = weapon.sprite;
+        if (weapon.type == Weapon.Type.Magic)
+        {
+            currWeaponImage.rectTransform.sizeDelta = new Vector2(45, 30);
+            currWeaponImage.rectTransform.anchoredPosition = new Vector2(-5, 0);
+        }
+        else
+        {
+            currWeaponImage.rectTransform.sizeDelta = new Vector2(15, 30);
+            currWeaponImage.rectTransform.anchoredPosition = new Vector2(0, 0);
+        }
     }
     public void UpdateCurrentWeaponImage() => currWeaponImage.sprite = currentWeapon.sprite;
     private void CloseWeaponMenu()
@@ -116,9 +132,11 @@ public class PlayerController : MonoBehaviour
         Cursor.visible = false;
         weaponsMenu.SetActive(false);
         Time.timeScale = 1;
+        canAttack = true;
     }
     private void OpenWeaponsMenu()
     {
+        canAttack = false;
         weaponMenuOn = true;
         Cursor.visible = true;
         weaponsMenu.SetActive(true);
@@ -136,12 +154,11 @@ public class PlayerController : MonoBehaviour
         levelSlider.value = exp;
         levelText.text = "" + level;
     }
-
     public void SelectWeapon(GameObject child) 
     {
         this.currentWeapon = child.GetComponent<WeaponInSlot>().weapon;
+        UpdateCurrentWeapon(currentWeapon);
     }
-
     public void SwordAttack()
     {
         audioManager.Play("PlayerAttack");
@@ -170,46 +187,116 @@ public class PlayerController : MonoBehaviour
     void OnMove(InputValue movementValue) => _movementInput = movementValue.Get<Vector2>();
     private void OnFire() 
     {
-        switch (currentWeapon.type)
+        if (canAttack)
         {
-            case Weapon.Type.Melee:
-                _animator.SetTrigger("swordAttack");
-                break;
-            case Weapon.Type.Ranged:
-                Vector2 mouseCursorePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-                Vector2 lookDir = mouseCursorePos - _rb.position;
-                lookDir.Normalize();
+            switch (currentWeapon.type)
+            {
+                case Weapon.Type.Melee:
+                    _animator.SetTrigger("swordAttack");
+                    break;
+                case Weapon.Type.Ranged:
+                    ThrowAxe();
+                    break;
+                case Weapon.Type.Magic:
+                    ThrowFireball();
+                    break;
+            }
+        }
+    }
+    private void ThrowAxe()
+    {
+        rangedCooldown = currentWeapon.cooldown;
+        if (Time.time - lastRangeTime >= rangedCooldown)
+        {
+            Vector2 mouseCursorePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            Vector2 lookDir = mouseCursorePos - _rb.position;
+            lookDir.Normalize();
 
-                GameObject throwingAxe = null;
-                if (mouseCursorePos.x < transform.position.x && mouseCursorePos.y < transform.position.y)
+            GameObject throwingAxe = null;
+            if (mouseCursorePos.x < transform.position.x && mouseCursorePos.y < transform.position.y)
+            {
+                throwingAxe = Instantiate(currentWeapon.instance, new Vector2(transform.position.x - 1, transform.position.y), Quaternion.identity);
+            }
+            else if (mouseCursorePos.x > transform.position.x && mouseCursorePos.y < transform.position.y)
+            {
+                throwingAxe = Instantiate(currentWeapon.instance, new Vector2(transform.position.x + 1, transform.position.y), Quaternion.identity);
+            }
+            else if (mouseCursorePos.y < transform.position.y)
+            {
+                throwingAxe = Instantiate(currentWeapon.instance, new Vector2(transform.position.x, transform.position.y - 1), Quaternion.identity);
+            }
+            else if (mouseCursorePos.y > transform.position.y)
+            {
+                throwingAxe = Instantiate(currentWeapon.instance, new Vector2(transform.position.x, transform.position.y + 0.4f), Quaternion.identity);
+            }
+            else
+                throwingAxe = Instantiate(currentWeapon.instance, transform.position, Quaternion.identity);
+
+            throwingAxe.GetComponent<SpriteRenderer>().flipY = (mouseCursorePos.x < transform.position.x);
+            throwingAxe.GetComponent<Rigidbody2D>().velocity = lookDir * currentWeapon.speed;
+            throwingAxe.transform.Rotate(0f, 0f, Mathf.Atan2(lookDir.y, lookDir.x) * Mathf.Rad2Deg);
+
+            audioManager.Play("ThrowingAxe");
+            lastRangeTime = Time.time;
+
+            Destroy(throwingAxe, currentWeapon.range); 
+        }
+    }
+    private void ThrowFireball()
+    {
+        rangedCooldown = currentWeapon.cooldown;
+        if (Time.time - lastRangeTime >= rangedCooldown)
+        {
+            Vector2 mouseCursorePos1 = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            Vector2 lookDir1 = mouseCursorePos1 - _rb.position;
+            lookDir1.Normalize();
+
+            if (playerHealth.mana >= currentWeapon.manaCost)
+            {
+                GameObject fireball = null;
+
+                if (mouseCursorePos1.x < transform.position.x && mouseCursorePos1.y < transform.position.y)
                 {
-                    throwingAxe = Instantiate(currentWeapon.instance, new Vector2(transform.position.x - 1, transform.position.y), Quaternion.identity);
+                    fireball = Instantiate(currentWeapon.instance, new Vector2(transform.position.x - .3f, transform.position.y), Quaternion.identity);
                 }
-                else if (mouseCursorePos.x > transform.position.x && mouseCursorePos.y < transform.position.y)
+                else if (mouseCursorePos1.x > transform.position.x && mouseCursorePos1.y < transform.position.y)
                 {
-                    throwingAxe = Instantiate(currentWeapon.instance, new Vector2(transform.position.x + 1, transform.position.y), Quaternion.identity);
+                    fireball = Instantiate(currentWeapon.instance, new Vector2(transform.position.x + .3f, transform.position.y), Quaternion.identity);
                 }
-                else if (mouseCursorePos.y < transform.position.y)
+                else if (mouseCursorePos1.y < transform.position.y)
                 {
-                    throwingAxe = Instantiate(currentWeapon.instance, new Vector2(transform.position.x, transform.position.y - 1), Quaternion.identity);
+                    fireball = Instantiate(currentWeapon.instance, new Vector2(transform.position.x, transform.position.y - 2), Quaternion.identity);
                 }
-                else if (mouseCursorePos.y > transform.position.y)
+                else if (mouseCursorePos1.y > transform.position.y)
                 {
-                    throwingAxe = Instantiate(currentWeapon.instance, new Vector2(transform.position.x, transform.position.y + 0.4f), Quaternion.identity);
+                    fireball = Instantiate(currentWeapon.instance, new Vector2(transform.position.x, transform.position.y + 0.4f), Quaternion.identity);
                 }
                 else
-                    throwingAxe = Instantiate(currentWeapon.instance, transform.position, Quaternion.identity);
+                    fireball = Instantiate(currentWeapon.instance, transform.position, Quaternion.identity);
 
-                throwingAxe.GetComponent<SpriteRenderer>().flipY = (mouseCursorePos.x < transform.position.x);
-                throwingAxe.GetComponent<Rigidbody2D>().velocity = lookDir * currentWeapon.speed;
-                throwingAxe.transform.Rotate(0f, 0f, Mathf.Atan2(lookDir.y, lookDir.x) * Mathf.Rad2Deg);
+                
+                fireball.GetComponent<SpriteRenderer>().flipY = (mouseCursorePos1.x < transform.position.x);
+                fireball.GetComponent<Rigidbody2D>().velocity = lookDir1 * currentWeapon.speed;
+                fireball.transform.Rotate(0f, 0f, Mathf.Atan2(lookDir1.y, lookDir1.x) * Mathf.Rad2Deg);
 
-                audioManager.Play("ThrowingAxe");
+                audioManager.Play("Fireball");
 
-                Destroy(throwingAxe, currentWeapon.range);
-                break;
+                playerHealth.UpdateMana(currentWeapon.manaCost);
+                lastRangeTime = Time.time;
+
+                Destroy(fireball, currentWeapon.range);
+            }
+            else
+                StartCoroutine(ShowErrorText(1));
         }
         
-    } 
+    }
+    private IEnumerator ShowErrorText(float delay)
+    {
+        errorText.gameObject.SetActive(true);
+        errorText.text = "You don't have enough Mana!";
+        yield return new WaitForSeconds(delay);
+        errorText.gameObject.SetActive(false);
+    }
     public int Coins() => _coins;
 }

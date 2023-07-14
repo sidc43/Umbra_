@@ -10,6 +10,7 @@ using TMPro;
 
 public class PlayerHealth : MonoBehaviour, IDamageHandler
 {
+    #region Public
     public  float maxHealth = 20f;
     public float maxMana = 20f;
     public float mana;
@@ -30,13 +31,6 @@ public class PlayerHealth : MonoBehaviour, IDamageHandler
     public RoomFirstDungeonGenerator waveManager;
     public TextMeshProUGUI buffText;
     public PlayerController playerController;
-
-    private int _numHearts;
-    private int _numMana;
-    private float invincibleTimeElapsed = 0f;
-    private Color originalColor;
-    private bool healthAndManaInc = true;
-
     public bool Invincible { get {
         return _invincible;
     }
@@ -48,7 +42,14 @@ public class PlayerHealth : MonoBehaviour, IDamageHandler
             invincibleTimeElapsed = 0f;
         }
     } }
-
+    #endregion
+    #region Private
+    private int _numHearts;
+    private int _numMana;
+    private float invincibleTimeElapsed = 0f;
+    private Color originalColor;
+    private bool healthAndManaInc = true;
+    #endregion
     void Start()
     {
         this.health = maxHealth;
@@ -58,7 +59,6 @@ public class PlayerHealth : MonoBehaviour, IDamageHandler
         DrawHearts();
         DrawMana();
     }
-
     void IDamageHandler.TakeDamage(float dmg, Vector2 kb)
     {
         if (!Invincible)
@@ -211,19 +211,16 @@ public class PlayerHealth : MonoBehaviour, IDamageHandler
             
         }
     }
-
     public void RedrawHearts()
     {
         ClearHearts();
         DrawHearts();
     }
-
     public void RedrawMana()
     {
         ClearMana();
         DrawMana();
     }
-
     private IEnumerator ShowBuffText(int delay)
     {
         buffText.gameObject.SetActive(true);
@@ -236,7 +233,6 @@ public class PlayerHealth : MonoBehaviour, IDamageHandler
         yield return new WaitForSeconds(interval);
         GetComponent<SpriteRenderer>().color = originalColor;
     }
-    
     public void UpdateMana(float manaCost)
     {
         mana -= manaCost;

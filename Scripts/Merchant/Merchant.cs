@@ -8,6 +8,7 @@ using TMPro;
 public class Merchant : MonoBehaviour
 {
     public Sprite promptSprite;
+    public Sprite defaultSlotSprite;
     public GameObject promptContainer;
     public Canvas shop;
     public Weapon throwingAxe;
@@ -26,8 +27,6 @@ public class Merchant : MonoBehaviour
     PlayerController player;
     PlayerHealth playerHealth;
     private bool inRange;
-    
-
     private void Start() 
     {
         healthPricetext.text = "" + healthPrice;
@@ -35,7 +34,6 @@ public class Merchant : MonoBehaviour
         axePriceText.text = "" + axePrice;
         fireballPriceText.text = "" + fireballPrice;
     }
-    
     private void Update()
     {
         bool eKeyPressed = Keyboard.current.eKey.wasPressedThisFrame;
@@ -105,28 +103,21 @@ public class Merchant : MonoBehaviour
         else
             StartCoroutine(ShowErrorText(1));
     }
-    public void BuyThrowingAxe() => BuyWeapon(throwingAxe, axePrice, 25, 60, 0, 9);
-    public void BuyFireball() => BuyWeapon(fireball, fireballPrice, 80, 45, -5, 4);
-    private void BuyWeapon(Weapon weapon, int weaponPrice, int rectX, int rectY, int posX, int posY)
+    public void BuyThrowingAxe() => BuyWeapon(throwingAxe, axePrice);
+    public void BuyFireball() => BuyWeapon(fireball, fireballPrice);
+    private void BuyWeapon(Weapon weapon, int weaponPrice)
     {
-        List<Transform> slots = new List<Transform>();
         if (player.Coins() >= weaponPrice && !player.weapons.Contains(weapon))
         {
-            for (int i = 0; i < player.weaponsMenu.transform.childCount; i++)
+            for (int i = 0; i < player.slots.Length; i++)
             {
-                var slot = player.weaponsMenu.transform.GetChild(i);
-                if (slot.GetChild(0).GetComponent<Image>().sprite == null)
+                if (player.slots[i].GetComponent<Image>().sprite == defaultSlotSprite)
                 {
-                    slots.Add(slot);
+                    player.AddWeapon(weapon, i);
+                    break;
                 }
             }
-            player.weapons.Add(weapon);
-            slots[0].GetChild(0).GetComponent<Image>().sprite = weapon.sprite;
-            slots[0].GetChild(0).GetComponent<WeaponInSlot>().weapon = weapon;
-            slots[0].GetChild(0).GetComponent<Image>().rectTransform.sizeDelta = new Vector2(rectX, rectY);   
-            slots[0].GetChild(0).GetComponent<Image>().rectTransform.anchoredPosition = new Vector2(posX, posY);
             player.UpdateCoinCountDec(weaponPrice);
-            player.UpdateCurrentWeapon(weapon);
         }
         else
             StartCoroutine(ShowErrorText(1));

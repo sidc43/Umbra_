@@ -6,6 +6,7 @@ using UnityEngine.Audio;
 using UnityEngine.InputSystem;
 using TMPro;
 using UnityEngine.Rendering.Universal;
+using System;
 
 public class PlayerController : MonoBehaviour
 {
@@ -22,13 +23,12 @@ public class PlayerController : MonoBehaviour
     public bool canAttack;
 
     [Header("Weapons")]
-    public GameObject weaponsMenu;
     public Weapon startingWeapon;
     public List<Weapon> weapons = new List<Weapon>(3);
     public Weapon currentWeapon;
+    public GameObject[] slots;
 
     [Header("UI")]
-    public Image currWeaponImage;
     public TextMeshProUGUI coinText;
     public Slider levelSlider;
     public TextMeshProUGUI levelText;
@@ -69,12 +69,12 @@ public class PlayerController : MonoBehaviour
         audioManager.Play("Theme"); 
         UpdateCoinCountInc(100);
 
-        weapons.Add(startingWeapon);
-        UpdateCurrentWeapon(startingWeapon);
+        AddWeapon(startingWeapon, 0);
+        currentWeapon = startingWeapon;
 
         Cursor.visible = false;
         room.GenerateDungeon();
-        transform.position = room.centers[Random.Range(0, room.centers.Count - 1)];
+        transform.position = room.centers[UnityEngine.Random.Range(0, room.centers.Count - 1)];
     }
     private void FixedUpdate() 
     {
@@ -102,45 +102,78 @@ public class PlayerController : MonoBehaviour
     }
     private void Update()
     {
-        if (Keyboard.current.qKey.wasPressedThisFrame) 
+        if (Mouse.current.scroll.ReadValue().y == 120) // forward
         {
-            if (weaponMenuOn)
-                CloseWeaponMenu();
-            else    
-                OpenWeaponsMenu();
+            CycleForward();
+        }
+
+        if (Mouse.current.scroll.ReadValue().y == -120) // backward
+        {
+            CycleBackward();
         }
     }
-    public void UpdateCurrentWeapon(Weapon weapon)
+    private void CycleBackward()
     {
-        currentWeapon = weapon;
-        currWeaponImage.sprite = weapon.sprite;
-        if (weapon.type == Weapon.Type.Magic)
+        int slotCount = 0;
+        foreach (GameObject slot in slots)
         {
-            currWeaponImage.rectTransform.sizeDelta = new Vector2(45, 30);
-            currWeaponImage.rectTransform.anchoredPosition = new Vector2(-5, 0);
+            if (slot.GetComponent<WeaponInSlot>() != null)
+                slotCount++;
         }
-        else
+        Weapon[] currentItems = new Weapon[slotCount];
+
+        for (int i = 0; i < slotCount; i++)
         {
-            currWeaponImage.rectTransform.sizeDelta = new Vector2(15, 30);
-            currWeaponImage.rectTransform.anchoredPosition = new Vector2(0, 0);
+            currentItems[i] = slots[i].GetComponent<WeaponInSlot>().weapon;
         }
+
+        Weapon lastItem = currentItems[slotCount - 1];
+        Array.Copy(currentItems, 0, currentItems, 1, slotCount - 1);
+        currentItems[0] = lastItem;
+
+        for (int i = 0; i < slotCount; i++)
+        {
+            slots[i].GetComponent<WeaponInSlot>().weapon = currentItems[i];
+            slots[i].GetComponent<Image>().sprite = currentItems[i].sprite;
+        }
+
+        currentWeapon = slots[0].GetComponent<WeaponInSlot>().weapon;
     }
-    public void UpdateCurrentWeaponImage() => currWeaponImage.sprite = currentWeapon.sprite;
-    private void CloseWeaponMenu()
+    private void CycleForward()
     {
-        weaponMenuOn = false;
-        Cursor.visible = false;
-        weaponsMenu.SetActive(false);
-        Time.timeScale = 1;
-        canAttack = true;
+        int slotCount = 0;
+        foreach (GameObject slot in slots)
+        {
+            if (slot.GetComponent<WeaponInSlot>() != null)
+                slotCount++;
+        }
+        Weapon[] currentItems = new Weapon[slotCount];
+
+        for (int i = 0; i < slotCount; i++)
+        {
+            currentItems[i] = slots[i].GetComponent<WeaponInSlot>().weapon;
+        }
+
+        Weapon firstItem = currentItems[0];
+        Array.Copy(currentItems, 1, currentItems, 0, slotCount - 1);
+        currentItems[slotCount - 1] = firstItem;
+
+        for (int i = 0; i < slotCount; i++)
+        {
+            slots[i].GetComponent<WeaponInSlot>().weapon = currentItems[i];
+            slots[i].GetComponent<Image>().sprite = currentItems[i].sprite;
+        }
+
+        currentWeapon = slots[0].GetComponent<WeaponInSlot>().weapon;
     }
-    private void OpenWeaponsMenu()
+    public void AddWeapon(Weapon weapon, int slotNum)
     {
-        canAttack = false;
-        weaponMenuOn = true;
-        Cursor.visible = true;
-        weaponsMenu.SetActive(true);
-        Time.timeScale = 0;
+        weapons.Add(weapon);
+        slots[slotNum].GetComponent<Image>().sprite = weapon.sprite;
+        if (slots[slotNum].GetComponent<WeaponInSlot>() == null)
+            slots[slotNum].AddComponent<WeaponInSlot>().weapon = weapon;
+
+        slots[slotNum].GetComponent<Image>().sprite = weapon.sprite;
     }
     public void CheckLevelUp()
     {
@@ -153,11 +186,6 @@ public class PlayerController : MonoBehaviour
         levelSlider.maxValue = expForNextLvl;
         levelSlider.value = exp;
         levelText.text = "" + level;
-    }
-    public void SelectWeapon(GameObject child) 
-    {
-        this.currentWeapon = child.GetComponent<WeaponInSlot>().weapon;
-        UpdateCurrentWeapon(currentWeapon);
     }
     public void SwordAttack()
     {
@@ -185,7 +213,7 @@ public class PlayerController : MonoBehaviour
     }
     public void StopSwordAttack() => swordAttack.StopAttack();
     void OnMove(InputValue movementValue) => _movementInput = movementValue.Get<Vector2>();
-    private void OnFire() 
+    private void OnFire()
     {
         if (canAttack)
         {

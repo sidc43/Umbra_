@@ -10,7 +10,6 @@ public class AudioManager : MonoBehaviour
 {
     public Sound[] sounds;
     public Slider sfxSlider;
-
     private void Awake()
     {
         foreach (Sound s in sounds)
@@ -22,7 +21,6 @@ public class AudioManager : MonoBehaviour
             s.source.loop = s.loop;
         }
     }
-
     private void Start()
     {
         string filePath = @"C:\Users\sidc2\Umbra_ testing\Assets\_Scripts\StateManagers\volume.txt";
@@ -55,13 +53,11 @@ public class AudioManager : MonoBehaviour
             Console.WriteLine("File not found.");
         }
     }
-
     public void Play(string name)
     {
         Sound s = Array.Find(sounds, sound => sound.name == name);
         s.source.Play();
     }
-
     public Sound GetSound(string name)
     {
         Sound s = Array.Find(sounds, sound => sound.name == name);

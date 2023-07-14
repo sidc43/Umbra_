@@ -26,10 +26,8 @@ public class PauseMenu : MonoBehaviour
                 PauseGame();
         }
     }
-
     public void Options() => optionsMenu.SetActive(true);
     public void CloseOptions() => optionsMenu.SetActive(false);
-
     public void PauseGame()
     {
         Cursor.visible = true;
@@ -37,7 +35,6 @@ public class PauseMenu : MonoBehaviour
         Time.timeScale = 0;
         isPaused = true;
     }
-
     public void SetVolume()
     {
         foreach (Sound s in audioManager.sounds)
@@ -64,7 +61,6 @@ public class PauseMenu : MonoBehaviour
         Time.timeScale = 1;
         isPaused = false;
     }
-
     public void ToggleFullScreen()
     {
         if (fullscreenToggle.isOn)
@@ -72,6 +68,5 @@ public class PauseMenu : MonoBehaviour
         else
             Screen.fullScreenMode = FullScreenMode.Windowed;
     }
-
     public void QuitApp() => Application.Quit();
 }
